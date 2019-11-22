@@ -20,13 +20,11 @@ class EnrollmentController {
 
     const { student_id, plan_id, start_date } = req.body;
 
-    // Calculate the Total Price
+   
     const studentPlan = await Plan.findByPk(plan_id);
     const { duration, price } = studentPlan;
     const totalPrice = duration * price;
-
-    // Calculate the End Date of the Enrollment.
-    // I subtracted one day at the end so it's possible to renroll ate the same day
+    
     const parsedStartDate = parseISO(start_date);
     const parsedEndDate = subDays(addMonths(parsedStartDate, duration), 1);
 
