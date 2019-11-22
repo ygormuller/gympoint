@@ -18,7 +18,9 @@ routes.post('/users', UserController.store);
 routes.post('/students', StudentController.store);
 routes.post('/sessions', SessionController.store);
 routes.post('/plans', PlanController.store);
-// routes.post('/enrollment', EnrollmentController.store);
+routes.post('/enrollment', EnrollmentController.store);
+
+routes.get('/enrollment', EnrollmentController.index);
 
 routes.use(authMiddlewares);
 
