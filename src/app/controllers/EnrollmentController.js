@@ -72,11 +72,18 @@ class EnrollmentController {
     const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
     const totalPrice = duration * price;
+    
     const enrollments = await Enrollment.findOne({
       where: {
         student_id,
       },
     });
+
+   // if (enrollment) {
+    //  return res
+     //   .status(401)
+    //    .json({ error: 'Student already has an enrollment' });
+    //}
 
     // calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
@@ -176,6 +183,30 @@ class EnrollmentController {
     await Enrollment.destroy({ where: { id: req.params.enrollmentId } });
     return res.json({ message: `Enrollment ${enrollment.id} was deleted` });
   }
+
+  async index(req, res) {
+    const { student_id } = req.query;
+
+    const enrollment = await Enrollment.findAll({
+      where: { student_id },
+      attributes: ['id', 'start_date', 'end_date', 'price'],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'name', 'age'],
+        },
+        {
+          model: Plan,
+          as: 'plan',
+          attributes: ['title', 'duration'],
+        },
+      ],
+    });
+
+    return res.json(enrollment);
+  }
 }
+
 
 export default new EnrollmentController();
