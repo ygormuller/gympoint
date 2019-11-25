@@ -27,6 +27,7 @@ routes.use(authMiddlewares);
 routes.put('/users', UserController.update);
 routes.put('/students', StudentController.update);
 routes.put('/plans', PlanController.update);
+routes.put('/enrollment', EnrollmentController.update);
 
 routes.post('/files', upload.single('file'), FileController.store);
 

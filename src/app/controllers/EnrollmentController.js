@@ -1,22 +1,31 @@
 import * as Yup from 'yup';
-import { parseISO, addMonths, subDays, format } from 'date-fns';
-import pt from 'date-fns/locale/pt';
+import {
+  parseISO,
+  parsedEndDate,
+  isBefore,
+  subDays,
+  addMonths,
+} from 'date-fns';
+
 import Enrollment from '../models/Enrollment';
 import Plan from '../models/Plan';
 import User from '../models/User';
 import Student from '../models/Student';
 import File from '../models/File';
 
+import Mail from '../../lib/Mail';
+
 class EnrollmentController {
-  async index(req, res){
+  async index(req, res) {
     const checkUser = await User.findOne({
-      where: { id: req.userId, provider: true}
+      where: { id: req.userId, provider: true },
     });
-    
-    if(!checkUser){
-      return res.status(401).json({ error:'User is not provide'});
+
+    if (!checkUser) {
+      return res.status(401).json({ error: 'User is not provide' });
     }
-    
+
+    const { page = 1 } = req.query;
     const enrollment = await Enrollment.findAll({
       order: ['date'],
       limit: 20,
@@ -41,34 +50,40 @@ class EnrollmentController {
         },
       ],
     });
-    
-    return res.json(enrollments);
-    
+
+    return res.json(enrollment);
   }
 
   async store(req, res) {
-    const schema = Yup.object().shape({
-      student_id: Yup.number().required(),
+    const schemaEnrollments = Yup.object().shape({
+      // student_id: Yup.number().required(),
       plan_id: Yup.number().required(),
       start_date: Yup.date().required(),
     });
 
-    if (!(await schema.isValid(req.body))) {
+    if (!(await schemaEnrollments.isValid(req.body))) {
       return res.status(400).json({ error: 'Validation fails.' });
     }
 
     const { student_id, plan_id, start_date } = req.body;
 
-   //calc price
+    // calc price
     const studentPlan = await Plan.findByPk(plan_id);
+    const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
     const totalPrice = duration * price;
-    
-    //calc enddate enrollment
+    const enrollments = await Enrollment.findOne({
+      where: {
+        student_id,
+      },
+    });
+
+    // calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
     const parsedEndDate = subDays(addMonths(parsedStartDate, duration), 1);
 
-    //enrollment exsits?
+    // enrollment exsits?
+
     const oldDate = isBefore(parseISO(start_date), new Date());
     if (oldDate) {
       return res.status(400).json({ error: 'Invalid old dates.' });
@@ -85,65 +100,82 @@ class EnrollmentController {
           .json({ error: 'Student is already registered.' });
       }
     }
-      return res.json(enrollment);
 
+    // Criar nova matrícula
+    const enrollmentSave = await Enrollment.create({
+      ...req.body,
+      student_id,
+      plan_id,
+      price: totalPrice,
+      start_date,
+      end_date: parsedEndDate,
+    });
+
+    const enrollment = await Enrollment.findByPk(enrollmentSave.id, {
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: Plan,
+          as: 'plan',
+          attributes: ['id', 'title'],
+        },
+      ],
+    });
+
+    await Mail.sendMail({
+      to: `${enrollment.student}<${enrollment.student}>`,
+      subject: 'Matrícula efetivada',
+      text: 'Você está matrículado',
+    });
+    // enrollment = await enrollment.update(req.body);
+
+    return res.status.json(enrollment);
+  }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      student_id: Yup.number(),
+      plan_id: Yup.number(),
+      start_date: Yup.date(),
+      end_date: Yup.date(),
+      price: Yup.number(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validations fails' });
     }
 
-    async update(req, res) {
-      const schemasEnrollments = Yup.object().shape({
-        student_id: Yup.number().required(),
-        plan_id: Yup.number().required(),
-        start_date: Yup.date().required(),
-      
-      });
-  
-      if (!(await schemasEnrollments.isValid(req.body))) {
-        return res
-          .status(400)
-          .json({ error: 'Validation fails.', message: 'Data inválida' });
-      }
-  
-      const { enrollmentId } = req.params;
-      const { student_id, plan_id, start_date } = req.body;
-      const student = await Student.findByPk(student_id);
-      const updatePlan = await Plan.findByPk(plan_id);
-  
-      const enrollments = await Enrollment.findByPk(enrollmentId);
-      if (!enrollments) {
-        return res.status(400).json({
-          error: 'The student did not register for enrollment.',
-          message: 'O Aluno ainda não esta vinculado a nenhuma matrícula',
-        });
-      }
-  
-      if (!student) {
-        return res.status(400).json({
-          error: 'Student does not exist.',
-          message: 'O Aluno não existe',
-        });
-      }
-  
-      if (!updatePlan) {
-        return res.status(400).json({
-          error: 'Plan does not existing.',
-          message: 'O Plano informado não existe',
-        });
+    const { id } = req.params;
 
-        return res.json(enrollment);
-      }
+    const enrollment = await Enrollment.findByPk(id, {
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['name', 'email'],
+        },
+      ],
+    });
+
+    // enrollment = await enrollment.update(req.body);
+    console.log(enrollment);
+    return res.status(200).json(enrollment);
+  }
+
+  async delete(req, res) {
+    const enrollment = await Enrollment.findByPk(req.params.enrollmentId);
+
+    if (!enrollment) {
+      return res.status(400).json({ error: 'Invalid enrollment' });
     }
 
-      async delete(req, res) {
-        const enrollment = await Enrollment.findByPk(req.params.enrollmentId);
-    
-        if (!enrollment) {
-          return res.status(400).json({ error: 'Invalid enrollment' });
-        }
-    
-        await Enrollment.destroy({ where: { id: req.params.enrollmentId } });
-        return res.json({ message: `Enrollment ${enrollment.id} was deleted` });
-      }
-    }
+    await Enrollment.destroy({ where: { id: req.params.enrollmentId } });
+    return res.json({ message: `Enrollment ${enrollment.id} was deleted` });
+  }
+}
 
 export default new EnrollmentController();
-
