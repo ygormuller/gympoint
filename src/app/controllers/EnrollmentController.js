@@ -13,7 +13,8 @@ import User from '../models/User';
 import Student from '../models/Student';
 import File from '../models/File';
 
-import Mail from '../../lib/Mail';
+import EnrollmentMail from '../jobs/EnrollmentMail'
+import Queue from '../../lib/Queue';
 
 class EnrollmentController {
   async index(req, res) {
@@ -133,12 +134,15 @@ class EnrollmentController {
       ],
     });
 
-    await Mail.sendMail({
-      to: `${enrollment.student}<${enrollment.student}>`,
-      subject: 'Matrícula efetivada',
-      text: 'Você está matrículado',
-    });
-    // enrollment = await enrollment.update(req.body);
+    await Queue.add(EnrollmentMail).key, {
+      enrollment,
+
+    }
+     // to: `${enrollment.student}<${enrollment.student}>`,
+     // subject: 'Matrícula efetivada',
+     // text: 'Você está matrículado',
+   // });
+    // enrollment = await enrollment.update(req.body);*/
 
     return res.status.json(enrollment);
   }
