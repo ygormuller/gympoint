@@ -1,11 +1,5 @@
 import * as Yup from 'yup';
-import {
-  parseISO,
-  parsedEndDate,
-  isBefore,
-  subDays,
-  addMonths,
-} from 'date-fns';
+import { parseISO, isBefore, startOfHour, subDays, addMonths } from 'date-fns';
 
 import Enrollment from '../models/Enrollment';
 import Plan from '../models/Plan';
@@ -72,22 +66,22 @@ class EnrollmentController {
     const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
     const totalPrice = duration * price;
-    
+
     const enrollments = await Enrollment.findOne({
       where: {
         student_id,
       },
     });
 
-   // if (enrollment) {
-    //  return res
-     //   .status(401)
-    //    .json({ error: 'Student already has an enrollment' });
-    //}
+    // if (enrollment) {
+    // return res
+    //  .status(401)
+    //  .json({ error: 'Student already has an enrollment' });
+    // }
 
     // calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
-    const parsedEndDate = subDays(addMonths(parsedStartDate, duration), 1);
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1);
 
     // enrollment exsits?
 
@@ -115,7 +109,7 @@ class EnrollmentController {
       plan_id,
       price: totalPrice,
       start_date,
-      end_date: parsedEndDate,
+      end_date,
     });
 
     const enrollment = await Enrollment.findByPk(enrollmentSave.id, {
@@ -140,7 +134,7 @@ class EnrollmentController {
     });
     // enrollment = await enrollment.update(req.body);
 
-    return res.status.json(enrollment);
+    return res.json(enrollment);
   }
 
   async update(req, res) {
@@ -148,32 +142,72 @@ class EnrollmentController {
       student_id: Yup.number(),
       plan_id: Yup.number(),
       start_date: Yup.date(),
-      end_date: Yup.date(),
-      price: Yup.number(),
+      // end_date: Yup.date(),
+      // price: Yup.number(),
     });
 
     if (!(await schema.isValid(req.body))) {
       return res.status(400).json({ error: 'Validations fails' });
     }
 
-    const { id } = req.params;
+    const { start_date, plan_id, student_id } = req.body;
 
-    const enrollment = await Enrollment.findByPk(id, {
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          attributes: ['name', 'email'],
-        },
-      ],
+    /**
+     * Check if the student exists at enrollment
+     */
+    const studentEnrollment = await Enrollment.findOne({
+      where: { student_id },
     });
 
-    // enrollment = await enrollment.update(req.body);
-    console.log(enrollment);
-    return res.status(200).json(enrollment);
+    if (!studentEnrollment) {
+      return res
+        .status(401)
+        .json({ error: 'The student does not have enrollment' });
+    }
+
+    /**
+     * Check Student exists
+     */
+    const student = await Student.findByPk(student_id);
+
+    if (!student) {
+      return res.status(401).json({ error: 'The Student was not found' });
+    }
+
+    /**
+     * Check Plan exists
+     */
+    const plan = await Plan.findByPk(plan_id);
+
+    if (!plan) {
+      return res.status(401).json({ error: 'The plan was not found.' });
+    }
+
+    /**
+     * Check for past date
+     */
+    const startDate = startOfHour(parseISO(start_date));
+
+    if (isBefore(startDate, new Date())) {
+      return res.status(400).json({ error: 'Past date are not permitted' });
+    }
+
+    const { price, duration } = plan;
+    const priceTotal = price * duration;
+    const endDate = addMonths(startDate, duration);
+
+    const enrollment = await studentEnrollment.update({
+      student_id,
+      plan_id,
+      start_date,
+      end_date: endDate,
+      price: priceTotal,
+    });
+
+    return res.json(enrollment);
   }
 
-  async delete(req, res) {
+  /* async delete(req, res) {
     const enrollment = await Enrollment.findByPk(req.params.enrollmentId);
 
     if (!enrollment) {
@@ -183,30 +217,28 @@ class EnrollmentController {
     await Enrollment.destroy({ where: { id: req.params.enrollmentId } });
     return res.json({ message: `Enrollment ${enrollment.id} was deleted` });
   }
-
-  async index(req, res) {
-    const { student_id } = req.query;
-
-    const enrollment = await Enrollment.findAll({
-      where: { student_id },
-      attributes: ['id', 'start_date', 'end_date', 'price'],
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          attributes: ['id', 'name', 'age'],
-        },
-        {
-          model: Plan,
-          as: 'plan',
-          attributes: ['title', 'duration'],
-        },
-      ],
-    });
-
-    return res.json(enrollment);
-  }
 }
 
+export default new EnrollmentController();
+*/
+  async delete(req, res) {
+    const { student_id } = req.body;
+    const studentEnrollment = await Enrollment.findOne({
+      where: { student_id },
+    });
+
+    if (!studentEnrollment) {
+      return res
+        .status(401)
+        .json({ error: 'The student does not have enrollment' });
+    }
+
+    Enrollment.destroy({
+      where: { student_id },
+    });
+
+    return res.json(studentEnrollment);
+  }
+}
 
 export default new EnrollmentController();

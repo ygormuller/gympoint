@@ -22,6 +22,8 @@ routes.post('/enrollment', EnrollmentController.store);
 
 routes.get('/enrollment', EnrollmentController.index);
 
+routes.delete('/enrollment', EnrollmentController.delete);
+
 routes.use(authMiddlewares);
 
 routes.put('/users', UserController.update);
