@@ -41,7 +41,7 @@ class EnrollmentController {
         {
           model: Plan,
           as: 'plan',
-          attributes: ['id', 'title', 'duration', 'price'],
+          attributes: ['id','title', 'duration', 'price'],
         },
       ],
     });
@@ -61,21 +61,21 @@ class EnrollmentController {
 
     const { student_id, plan_id, start_date } = req.body;
 
-    // calc price
+    /* calc price
     const studentPlan = await Plan.findByPk(plan_id);
     const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
-    const totalPrice = duration * price;
+    const totalPrice = duration * price;*/
 
-    const enrollments = await Enrollment.findOne({
+    const studentEnrollments = await Enrollment.findOne({
       where: {
         student_id,
       },
     });
 
-    // calc enddate enrollment
+    /* calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1);
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1);*/
 
     // enrollment exsits?
 
@@ -84,11 +84,11 @@ class EnrollmentController {
       return res.status(400).json({ error: 'Invalid old dates.' });
     }
 
-    if (!student) {
+    if (!studentEnrollments) {
       return res.status(400).json({ error: 'Student does not exist.' });
     }
 
-    if (enrollments) {
+    if (studentEnrollments) {
       if (enrollments.student_id === student_id) {
         return res
           .status(400)
@@ -96,7 +96,7 @@ class EnrollmentController {
       }
     }
 
-    // Criar nova matrícula
+    /* Criar nova matrícula
     const enrollmentSave = await Enrollment.create({
       ...req.body,
       student_id,
@@ -119,7 +119,34 @@ class EnrollmentController {
           attributes: ['id', 'title'],
         },
       ],
+    });*/
+
+    const startDate = startOfHour(parseISO(start_date));
+
+    if (isBefore(startDate, new Date())) {
+      return res.status(400).json({ error: 'Past date are not permitted' });
+    }
+
+    const { price, duration } = plan;
+    const priceTotal = price * duration;
+    const endDate = addMonths(startDate, duration);
+
+    const enrollment = await Enrollment.create({
+      student_id,
+      plan_id,
+      start_date,
+      end_date: endDate,
+      price: priceTotal,
     });
+
+    /*const studentPlan = await Plan.findByPk(plan_id);
+    const student = await Student.findByPk(student_id);
+    const { duration, price } = studentPlan;
+    const totalPrice = duration * price;
+
+    calc enddate enrollment
+    const parsedStartDate = parseISO(start_date);
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1);*/
 
     // Check Plan exists
 
