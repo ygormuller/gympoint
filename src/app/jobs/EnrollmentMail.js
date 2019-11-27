@@ -1,31 +1,44 @@
-import { format } from 'data-fns';
+import { format, parseISO } from 'date-fns';
 import pt from 'date-fns/locale/pt';
 import Mail from '../../lib/Mail';
-import { async } from 'rxjs/internal/scheduler/async';
 
 class EnrollmentMail {
-    get key() {
-        return 'EnrollmentMail';
-    }
+  get key() {
+    return 'EnrollmentMail';
+  }
+
+  async handle({ data }) {
+    const { enrollment, plan } = data;
+
+    console.log('Executo');
+
+    await Mail.senddMail({
+      // to: `${student.name} <${student.email}>`,
+      to: `${enrollment.student}<${enrollment.student}>`,
+      subject: 'Matrícula realizada',
+      template: 'enrollment',
+      context: {
+        student: enrollment.student,
+        start: format(
+          parseISO(enrollment.start_date),
+          "'dia' dd 'de' MMMM', às' H:mm'h'",
+          {
+            locale: pt,
+          }
+        ),
+
+        plan: plan.title,
+        price: enrollment.price,
+        end: format(
+          parseISO(enrollment.end_date),
+          "'dia' dd 'de' MMMM', às' H:mm'h'",
+          {
+            locale: pt,
+          }
+        ),
+      },
+    });
+  }
 }
 
-async handle({ data }) {
-    const { appointment } = data;
-
-    await Mail.sendMail({
-        to: `${student.name} <${student.email}>`,
-        subject: 'Matrícula realizada',
-        template: 'enrollment',
-        context: {
-          student: student.name,
-          start: format(
-            parseISO(enrollment.start_date),
-            "'dia' dd 'de' MMMM', às' H:mm'h'",
-            {
-              locale: pt,
-            }
-          ),
-          
-    
-    })
-}
+export default new EnrollmentMail();

@@ -7,7 +7,7 @@ import User from '../models/User';
 import Student from '../models/Student';
 import File from '../models/File';
 
-import EnrollmentMail from '../jobs/EnrollmentMail'
+import EnrollmentMail from '../jobs/EnrollmentMail';
 import Queue from '../../lib/Queue';
 
 class EnrollmentController {
@@ -51,7 +51,6 @@ class EnrollmentController {
 
   async store(req, res) {
     const schemaEnrollments = Yup.object().shape({
-      // student_id: Yup.number().required(),
       plan_id: Yup.number().required(),
       start_date: Yup.date().required(),
     });
@@ -73,12 +72,6 @@ class EnrollmentController {
         student_id,
       },
     });
-
-    // if (enrollment) {
-    // return res
-    //  .status(401)
-    //  .json({ error: 'Student already has an enrollment' });
-    // }
 
     // calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
@@ -128,14 +121,22 @@ class EnrollmentController {
       ],
     });
 
-    await Queue.add(EnrollmentMail).key, {
-      enrollment,
+    // Check Plan exists
 
+    const plan = await Plan.findByPk(plan_id);
+
+    if (!plan) {
+      return res.status(401).json({ error: 'The plan was not found.' });
     }
-     // to: `${enrollment.student}<${enrollment.student}>`,
-     // subject: 'Matrícula efetivada',
-     // text: 'Você está matrículado',
-   // });
+
+    await Queue.add(EnrollmentMail.key, {
+      enrollment,
+      plan,
+    });
+    // to: `${enrollment.student}<${enrollment.student}>`,
+    // subject: 'Matrícula efetivada',
+    // text: 'Você está matrículado',
+    // });
     // enrollment = await enrollment.update(req.body);*/
 
     return res.json(enrollment);
@@ -146,8 +147,6 @@ class EnrollmentController {
       student_id: Yup.number(),
       plan_id: Yup.number(),
       start_date: Yup.date(),
-      // end_date: Yup.date(),
-      // price: Yup.number(),
     });
 
     if (!(await schema.isValid(req.body))) {
@@ -156,9 +155,8 @@ class EnrollmentController {
 
     const { start_date, plan_id, student_id } = req.body;
 
-    /**
-     * Check if the student exists at enrollment
-     */
+    // Check if the student exists at enrollment
+
     const studentEnrollment = await Enrollment.findOne({
       where: { student_id },
     });
@@ -169,27 +167,22 @@ class EnrollmentController {
         .json({ error: 'The student does not have enrollment' });
     }
 
-    /**
-     * Check Student exists
-     */
+    // Check Student exists
+
     const student = await Student.findByPk(student_id);
 
     if (!student) {
       return res.status(401).json({ error: 'The Student was not found' });
     }
 
-    /**
-     * Check Plan exists
-     */
     const plan = await Plan.findByPk(plan_id);
 
-    if (!plan) {
-      return res.status(401).json({ error: 'The plan was not found.' });
-    }
+    // if (!plan) {
+    //   return res.status(401).json({ error: 'The plan was not found.' });
+    // }
 
-    /**
-     * Check for past date
-     */
+    // Check for past date
+
     const startDate = startOfHour(parseISO(start_date));
 
     if (isBefore(startDate, new Date())) {
@@ -211,20 +204,6 @@ class EnrollmentController {
     return res.json(enrollment);
   }
 
-  /* async delete(req, res) {
-    const enrollment = await Enrollment.findByPk(req.params.enrollmentId);
-
-    if (!enrollment) {
-      return res.status(400).json({ error: 'Invalid enrollment' });
-    }
-
-    await Enrollment.destroy({ where: { id: req.params.enrollmentId } });
-    return res.json({ message: `Enrollment ${enrollment.id} was deleted` });
-  }
-}
-
-export default new EnrollmentController();
-*/
   async delete(req, res) {
     const { student_id } = req.body;
     const studentEnrollment = await Enrollment.findOne({

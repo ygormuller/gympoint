@@ -1,32 +1,42 @@
 import Bee from 'bee-queue';
 import EnrollmentMail from '../app/jobs/EnrollmentMail';
+import redisConfig from '../config/redis';
 
 const jobs = [EnrollmentMail];
 
-class Queue{
-    constructor() {
-        this.queue = {};
+class Queue {
+  constructor() {
+    this.queues = {};
 
-        this.init();
-    } 
+    this.init();
+  }
 
-    init() {
-        jobs.forEach(({ key, handle})) => {
-            this.queues[key] = new Bee(key,{
-               redis: redisConfig,
-            }),
-            handle,
-            };
-        });    
-    }
+  init() {
+    jobs.forEach(({ key, handle }) => {
+      this.queues[key] = {
+        bee: new Bee(key, {
+          redis: redisConfig,
+        }),
+        handle,
+      };
+    });
+  }
 
-    add (queue, job) {
-        return this.queunes[queue].bee.createJob(job).save();
-    }
+  add(queue, job) {
+    return this.queues[queue].bee.createJob(job).save();
+  }
 
-    bee.process(handle);
-});
+  processQueue() {
+    jobs.forEach(job => {
+      const { bee, handle } = this.queues[job.key];
+
+      bee.on('failed', this.handleFailure).process(handle);
+    });
+  }
+
+  handleFailure(job, err) {
+    console.log(`Queue ${job.queue.name}: FAILED`, err);
+  }
 }
-}
 
-export default new Queue;
+export default new Queue();
