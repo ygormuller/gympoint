@@ -16,7 +16,7 @@ class EnrollmentMail {
       // to: `${student.name} <${student.email}>`,
       to: `${enrollment.student}<${enrollment.student}>`,
       subject: 'Matrícula realizada',
-      template: 'enrollment',
+      template: 'enrollmentConfirmation',
       context: {
         student: enrollment.student,
         start: format(

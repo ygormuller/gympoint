@@ -51,6 +51,7 @@ class EnrollmentController {
 
   async store(req, res) {
     const schemaEnrollments = Yup.object().shape({
+      student_id: Yup.number().required(),
       plan_id: Yup.number().required(),
       start_date: Yup.date().required(),
     });
@@ -60,12 +61,7 @@ class EnrollmentController {
     }
 
     const { student_id, plan_id, start_date } = req.body;
-
-    /* calc price
-    const studentPlan = await Plan.findByPk(plan_id);
-    const student = await Student.findByPk(student_id);
-    const { duration, price } = studentPlan;
-    const totalPrice = duration * price; */
+    const plan = await Plan.findByPk(plan_id);
     const student = await Student.findByPk(student_id);
     const enrollments = await Enrollment.findOne({
       where: {
@@ -73,60 +69,37 @@ class EnrollmentController {
       },
     });
 
-    /* calc enddate enrollment
-    const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
-
-    // enrollment exsits?
-
-    const oldDate = isBefore(parseISO(start_date), new Date());
-    if (oldDate) {
-      return res.status(400).json({ error: 'Invalid old dates.' });
-    }
-    console.log(student_id);
-    if (!student) {
-      return res.status(400).json({ error: 'Student does not exist.' });
-    }
-
     if (enrollments) {
       if (enrollments.student_id === student_id) {
         return res
           .status(400)
           .json({ error: 'Student is already registered.' });
       }
+
+    /* calc enddate enrollment
+    const parsedStartDate = parseISO(start_date);
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
+
+    // enrollment exsits?
+
+    /*const oldDate = isBefore(parseISO(start_date), new Date());
+    if (oldDate) {
+      return res.status(400).json({ error: 'Invalid old dates.' });
+    }
+    console.log(student_id);*/
+    if (!student) {
+      return res.status(400).json({ error: 'Student does not exist.' });
     }
 
-    /* Criar nova matrícula
-    const enrollmentSave = await Enrollment.create({
-      ...req.body,
-      student_id,
-      plan_id,
-      price: totalPrice,
-      start_date,
-      end_date,
-    });
-    const enrollment = await Enrollment.findByPk(enrollmentSave.id, {
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          attributes: ['id', 'name', 'email'],
-        },
-        {
-          model: Plan,
-          as: 'plan',
-          attributes: ['id', 'title'],
-        },
-      ],
-    }); */
+    if (!plan) {
+      return res.status(401).json({ error: 'The plan was not found.' });
+    }
 
     const startDate = startOfHour(parseISO(start_date));
 
     if (isBefore(startDate, new Date())) {
       return res.status(400).json({ error: 'Past date are not permitted' });
     }
-
-    const plan = await Plan.findByPk(plan_id);
 
     const { price, duration } = plan;
     const priceTotal = price * duration;
@@ -139,25 +112,10 @@ class EnrollmentController {
       end_date: endDate,
       price: priceTotal,
     });
-
-    /* const studentPlan = await Plan.findByPk(plan_id);
-    const student = await Student.findByPk(student_id);
-    const { duration, price } = studentPlan;
-    const totalPrice = duration * price;
-    calc enddate enrollment
-    const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
-
-    // Check Plan exists
-
-    // const plan = await Plan.findByPk(plan_id);
-
-    if (!plan) {
-      return res.status(401).json({ error: 'The plan was not found.' });
-    }
-
+ 
     await Queue.add(EnrollmentMail.key, {
       enrollment,
+      dtudent,
       plan,
     });
     // to: `${enrollment.student}<${enrollment.student}>`,
