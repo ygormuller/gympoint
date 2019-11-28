@@ -1,5 +1,5 @@
 import * as Yup from 'yup';
-import { parseISO, isBefore, startOfHour, subDays, addMonths } from 'date-fns';
+import { parseISO, isBefore, startOfHour, addMonths } from 'date-fns';
 
 import Enrollment from '../models/Enrollment';
 import Plan from '../models/Plan';
@@ -41,7 +41,7 @@ class EnrollmentController {
         {
           model: Plan,
           as: 'plan',
-          attributes: ['id','title', 'duration', 'price'],
+          attributes: ['id', 'title', 'duration', 'price'],
         },
       ],
     });
@@ -65,9 +65,9 @@ class EnrollmentController {
     const studentPlan = await Plan.findByPk(plan_id);
     const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
-    const totalPrice = duration * price;*/
-
-    const studentEnrollments = await Enrollment.findOne({
+    const totalPrice = duration * price; */
+    const student = await Student.findByPk(student_id);
+    const enrollments = await Enrollment.findOne({
       where: {
         student_id,
       },
@@ -75,7 +75,7 @@ class EnrollmentController {
 
     /* calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1);*/
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
 
     // enrollment exsits?
 
@@ -83,12 +83,12 @@ class EnrollmentController {
     if (oldDate) {
       return res.status(400).json({ error: 'Invalid old dates.' });
     }
-
-    if (!studentEnrollments) {
+    console.log(student_id);
+    if (!student) {
       return res.status(400).json({ error: 'Student does not exist.' });
     }
 
-    if (studentEnrollments) {
+    if (enrollments) {
       if (enrollments.student_id === student_id) {
         return res
           .status(400)
@@ -105,7 +105,6 @@ class EnrollmentController {
       start_date,
       end_date,
     });
-
     const enrollment = await Enrollment.findByPk(enrollmentSave.id, {
       include: [
         {
@@ -119,13 +118,15 @@ class EnrollmentController {
           attributes: ['id', 'title'],
         },
       ],
-    });*/
+    }); */
 
     const startDate = startOfHour(parseISO(start_date));
 
     if (isBefore(startDate, new Date())) {
       return res.status(400).json({ error: 'Past date are not permitted' });
     }
+
+    const plan = await Plan.findByPk(plan_id);
 
     const { price, duration } = plan;
     const priceTotal = price * duration;
@@ -139,18 +140,17 @@ class EnrollmentController {
       price: priceTotal,
     });
 
-    /*const studentPlan = await Plan.findByPk(plan_id);
+    /* const studentPlan = await Plan.findByPk(plan_id);
     const student = await Student.findByPk(student_id);
     const { duration, price } = studentPlan;
     const totalPrice = duration * price;
-
     calc enddate enrollment
     const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1);*/
+    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
 
     // Check Plan exists
 
-    const plan = await Plan.findByPk(plan_id);
+    // const plan = await Plan.findByPk(plan_id);
 
     if (!plan) {
       return res.status(401).json({ error: 'The plan was not found.' });
