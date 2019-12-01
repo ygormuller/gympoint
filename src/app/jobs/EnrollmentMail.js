@@ -8,17 +8,17 @@ class EnrollmentMail {
   }
 
   async handle({ data }) {
-    const { enrollment, plan } = data;
+    const { enrollment, student, plan } = data;
 
     console.log('Executo');
 
-    await Mail.senddMail({
-      // to: `${student.name} <${student.email}>`,
-      to: `${enrollment.student}<${enrollment.student}>`,
+    await Mail.sendMail({
+      to: `${student.name} <${student.email}>`,
+      // to: `${enrollment.student}<${enrollment.student}>`,
       subject: 'Matrícula realizada',
-      template: 'enrollmentConfirmation',
+      template: 'enrollConfirmation',
       context: {
-        student: enrollment.student,
+        student: student.name,
         start: format(
           parseISO(enrollment.start_date),
           "'dia' dd 'de' MMMM', às' H:mm'h'",

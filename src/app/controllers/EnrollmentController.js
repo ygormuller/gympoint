@@ -75,18 +75,8 @@ class EnrollmentController {
           .status(400)
           .json({ error: 'Student is already registered.' });
       }
-
-    /* calc enddate enrollment
-    const parsedStartDate = parseISO(start_date);
-    const end_date = subDays(addMonths(parsedStartDate, duration), 1); */
-
-    // enrollment exsits?
-
-    /*const oldDate = isBefore(parseISO(start_date), new Date());
-    if (oldDate) {
-      return res.status(400).json({ error: 'Invalid old dates.' });
     }
-    console.log(student_id);*/
+
     if (!student) {
       return res.status(400).json({ error: 'Student does not exist.' });
     }
@@ -112,17 +102,12 @@ class EnrollmentController {
       end_date: endDate,
       price: priceTotal,
     });
- 
+
     await Queue.add(EnrollmentMail.key, {
       enrollment,
-      dtudent,
+      student,
       plan,
     });
-    // to: `${enrollment.student}<${enrollment.student}>`,
-    // subject: 'Matrícula efetivada',
-    // text: 'Você está matrículado',
-    // });
-    // enrollment = await enrollment.update(req.body);*/
 
     return res.json(enrollment);
   }
@@ -161,12 +146,6 @@ class EnrollmentController {
     }
 
     const plan = await Plan.findByPk(plan_id);
-
-    // if (!plan) {
-    //   return res.status(401).json({ error: 'The plan was not found.' });
-    // }
-
-    // Check for past date
 
     const startDate = startOfHour(parseISO(start_date));
 
