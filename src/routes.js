@@ -8,6 +8,8 @@ import SessionController from './app/controllers/SessionController';
 import FileController from './app/controllers/FileController';
 import PlanController from './app/controllers/PlanController';
 import EnrollmentController from './app/controllers/EnrollmentController';
+import HelpOrdersController from './app/controllers/HelpOrdersController';
+import Answer_HelpController from './app/controllers/Answer_HelpController';
 
 import authMiddlewares from './app/middlewares/auth';
 
@@ -19,8 +21,11 @@ routes.post('/students', StudentController.store);
 routes.post('/sessions', SessionController.store);
 routes.post('/plans', PlanController.store);
 routes.post('/enrollment', EnrollmentController.store);
+routes.post('/students/:student_id/help-orders', HelpOrdersController.store);
 
 routes.get('/enrollment', EnrollmentController.index);
+routes.get('/students/:student_id/help-orders', HelpOrdersController.index);
+routes.get('/help-orders/answer', AnswerHelpController.index);
 
 routes.delete('/enrollment', EnrollmentController.delete);
 
