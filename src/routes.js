@@ -10,6 +10,7 @@ import PlanController from './app/controllers/PlanController';
 import EnrollmentController from './app/controllers/EnrollmentController';
 import HelpOrdersController from './app/controllers/HelpOrdersController';
 import AnswerHelpController from './app/controllers/AnswerHelpController';
+import CheckinController from './app/controllers/CheckinController';
 
 import authMiddlewares from './app/middlewares/auth';
 
@@ -22,10 +23,12 @@ routes.post('/sessions', SessionController.store);
 routes.post('/plans', PlanController.store);
 routes.post('/enrollment', EnrollmentController.store);
 routes.post('/students/:student_id/help-orders', HelpOrdersController.store);
+routes.post('/checkin/:student_id/checkins', CheckinController.store);
 
 routes.get('/enrollment', EnrollmentController.index);
 routes.get('/students/:student_id/help-orders', HelpOrdersController.index);
 routes.get('/help-orders/answer', AnswerHelpController.index);
+routes.get('/checkin/:student_id/checkins', CheckinController.index);
 
 routes.delete('/enrollment', EnrollmentController.delete);
 
