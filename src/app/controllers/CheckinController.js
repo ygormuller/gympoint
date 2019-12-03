@@ -1,12 +1,13 @@
 import {
   currentDay,
+  format,
   subDays,
   startOfWeek,
   endOfWeek,
   startOfHour,
 } from 'date-fns';
 import pt from 'date-fns/locale/pt';
-import { Op } from 'sequelize';
+// import { Op } from 'sequelize';
 import Student from '../models/Student';
 // import Enrollment from '../models/Enrollment';
 
@@ -33,9 +34,9 @@ class CheckinController {
   async store(req, res) {
     const { student_id } = req.params;
     const student = await Student.findByPk(student_id);
-    const enrollment = await Enrollment.findOne({
-      where: { student_id },
-    });
+    // const enrollment = await Enrollment.findOne({
+    //  where: { student_id },
+    // });
 
     /**
      * Verifica quando checkins foram feitos dentro de 7 dias e bloqueia

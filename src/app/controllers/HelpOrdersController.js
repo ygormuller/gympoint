@@ -1,61 +1,50 @@
 import * as Yup from 'yup';
 
-import Help_Orders from '../models/HelpOrders';
+import HelpOrders from '../models/HelpOrders';
 import Student from '../models/Student';
 
-import AnswerMail from '../jobs/AnswerMail';
-import Queue from '../../lib/Queue';
-
 class HelpOrdersController {
-  async index(req, res) {
-    const noRes = await Help_Orders.findAll({
-      where: { answer: null },
-      attributes: ['id', 'student_id', 'question'],
-    });
-    return res.json(noRes);
-  }
-
-  async update(req, res) {
+  async store(req, res) {
     const schema = Yup.object().shape({
-      answer: Yup.string().required(),
-      answer_at: Yup.date().required(),
+      question: Yup.string().required(),
     });
 
     if (!(await schema.isValid(req.body))) {
       return res.status(400).json({ error: 'Validation fails' });
     }
 
-    const idAnswer = await Help_Orders.findByPk(req.params.id);
+    const { student_id } = req.params;
 
-    if (!idAnswer) {
-      return res.status(401).json({ error: 'ID no exists' });
+    const { question } = req.body;
+
+    const student = await Student.findByPk(student_id);
+
+    if (!student) {
+      return res.status(401).json({ error: 'Student no exists' });
     }
 
-    const student = await Student.findOne({
-      where: { id: idAnswer.student_id },
-      attributes: ['id', 'name', 'email'],
-    });
-
-    const {
-      id,
-      student_id,
-      question,
-      answer,
-      answer_at,
-    } = await idAnswer.update(req.body);
-
-    await Queue.add(AnswerMail.key, {
-      idAnswer,
-      student,
-    });
+    await HelpOrders.create({ student_id, question });
 
     return res.json({
-      id,
       student_id,
       question,
-      answer,
-      answer_at,
     });
+  }
+
+  async index(req, res) {
+    const { student_id } = req.params;
+
+    const student = await Student.findByPk(student_id);
+    if (!student) {
+      return res.status(401).json({ error: 'Student no exists' });
+    }
+
+    const help_orders = await HelpOrders.findAll({
+      where: { student_id },
+      attributes: ['id', 'question'],
+    });
+
+    return res.json(help_orders);
   }
 }
 

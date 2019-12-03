@@ -9,7 +9,7 @@ import FileController from './app/controllers/FileController';
 import PlanController from './app/controllers/PlanController';
 import EnrollmentController from './app/controllers/EnrollmentController';
 import HelpOrdersController from './app/controllers/HelpOrdersController';
-import Answer_HelpController from './app/controllers/Answer_HelpController';
+import AnswerHelpController from './app/controllers/AnswerHelpController';
 
 import authMiddlewares from './app/middlewares/auth';
 
@@ -35,6 +35,7 @@ routes.put('/users', UserController.update);
 routes.put('/students', StudentController.update);
 routes.put('/plans', PlanController.update);
 routes.put('/enrollment', EnrollmentController.update);
+routes.put('/help-orders/:id/answer', AnswerHelpController.update);
 
 routes.post('/files', upload.single('file'), FileController.store);
 

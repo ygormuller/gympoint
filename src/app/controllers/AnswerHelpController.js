@@ -1,6 +1,6 @@
 import * as Yup from 'yup';
 
-import HelpOrders from '../models/Helporders';
+import HelpOrders from '../models/HelpOrders';
 import Student from '../models/Student';
 
 import AnswerMail from '../jobs/AnswerMail';
@@ -25,7 +25,7 @@ class AnswerHelpController {
       return res.status(400).json({ error: 'Validation fails' });
     }
 
-    const idAnswer = await Help_Orders.findByPk(req.params.id);
+    const idAnswer = await HelpOrders.findByPk(req.params.id);
 
     if (!idAnswer) {
       return res.status(401).json({ error: 'ID no exists' });
